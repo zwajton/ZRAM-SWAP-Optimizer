@@ -1,0 +1,6 @@
+{
+  "version": "3",
+  "versionCode": 3,
+  "zipUrl": "https://github.com/zwajton/ZRAM-SWAP-Optimizer/releases/download/v6/oom_adjuster_v6.zip",
+  "changelog": "https://raw.githubusercontent.com/zwajton/ZRAM-SWAP-Optimizer/main/changelog.md"
+}
