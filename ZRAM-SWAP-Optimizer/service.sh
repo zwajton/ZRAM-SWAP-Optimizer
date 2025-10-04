@@ -188,7 +188,7 @@ tune_vm() {
 
 # --- Main Execution ---
 main() {
-    sleep 90  # Delay before script runs
+    sleep 15  # Delay before script runs
     # init_log  # Initialize log FIRST
     
     set_zram_size_by_ram # Optional: set ZRAM size based on RAM (if implemented)
