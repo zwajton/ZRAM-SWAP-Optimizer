@@ -9,7 +9,7 @@ LOG_FILE="/sdcard/zram_optimizer.log"
 SWAPFILE="/data/swapfile"
 
 # Settings
-ZRAM_SIZE="6G"              # Target ZRAM size (falls back to 4G if needed)
+ZRAM_SIZE="4G"              # Target ZRAM size (falls back to 2G if needed)
 COMP_ALGORITHM="lz4"        # Compression: lz4 (fast) | zstd (better compression)
 MAX_RETRIES=2               # Reset attempts before fallback
 
@@ -32,6 +32,26 @@ to_bytes() {
         /K$/{print $1*1024}
         /M$/{print $1*1024*1024}
         /G$/{print $1*1024*1024*1024}'
+}
+
+# --- Detect RAM and Set ZRAM Size ---
+set_zram_size_by_ram() {
+    # Get total RAM in MB
+    local total_ram_mb
+    total_ram_mb=$(awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo)
+
+    if [ "$total_ram_mb" -le 4096 ]; then
+        ZRAM_SIZE="3G"
+    elif [ "$total_ram_mb" -le 6144 ]; then
+        ZRAM_SIZE="5G"
+    elif [ "$total_ram_mb" -le 8192 ]; then
+        ZRAM_SIZE="6G"
+    elif [ "$total_ram_mb" -le 12288 ]; then
+        ZRAM_SIZE="8G"
+    else
+        ZRAM_SIZE="4G"  # Fallback/default
+    fi
+    log "Detected RAM: ${total_ram_mb}MB, setting ZRAM_SIZE=$ZRAM_SIZE"
 }
 
 # --- ZRAM Management ---
@@ -123,28 +143,56 @@ optimize_compression() {
 
 # --- VM Tuning ---
 tune_vm() {
-    echo $SWAPPINESS > /proc/sys/vm/swappiness
-    echo $WATERMARK_BOOST > /proc/sys/vm/watermark_boost_factor
-    echo $WATERMARK_SCALE > /proc/sys/vm/watermark_scale_factor
-    echo $PAGE_CLUSTER > /proc/sys/vm/page-cluster
+    # Read old values
+    old_swappiness=$(cat /proc/sys/vm/swappiness 2>/dev/null)
+    old_page_cluster=$(cat /proc/sys/vm/page-cluster 2>/dev/null)
+    old_vfs_cache_pressure=$(cat /proc/sys/vm/vfs_cache_pressure 2>/dev/null)
+    old_dirty_ratio=$(cat /proc/sys/vm/dirty_ratio 2>/dev/null)
+    old_dirty_background_ratio=$(cat /proc/sys/vm/dirty_background_ratio 2>/dev/null)
+    old_dirty_expire_centisecs=$(cat /proc/sys/vm/dirty_expire_centisecs 2>/dev/null)
+    old_dirty_writeback_centisecs=$(cat /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null)
+    old_watermark_boost=$(cat /proc/sys/vm/watermark_boost_factor 2>/dev/null)
+    old_watermark_scale=$(cat /proc/sys/vm/watermark_scale_factor 2>/dev/null)
+
+    # Apply new values
+    echo 100 > /proc/sys/vm/swappiness
+    echo 0 > /proc/sys/vm/page-cluster
+    echo 10 > /proc/sys/vm/vfs_cache_pressure
+    echo 80 > /proc/sys/vm/dirty_ratio
+    echo 10 > /proc/sys/vm/dirty_background_ratio
+    echo 6000 > /proc/sys/vm/dirty_expire_centisecs
+    echo 6000 > /proc/sys/vm/dirty_writeback_centisecs
+    echo 0 > /proc/sys/vm/watermark_boost_factor
+    echo 125 > /proc/sys/vm/watermark_scale_factor
     
     [ -f /sys/block/zram0/writeback ] && {
-        echo 1 > /sys/block/zram0/writeback
-        echo "50M" > /sys/block/zram0/writeback_limit
+        if echo 1 > /sys/block/zram0/writeback 2>/dev/null; then
+        echo $((50 * 1024 * 1024)) > /sys/block/zram0/writeback_limit
         log "Enabled ZRAM writeback (50MB limit)"
+        else
+            log "ZRAM writeback not supported on this kernel."
+        fi
     }
     
-    log "VM Settings:
-    - swappiness=$SWAPPINESS
-    - watermark_boost=$WATERMARK_BOOST
-    - watermark_scale=$WATERMARK_SCALE
-    - page-cluster=$PAGE_CLUSTER"
+    log "VM Settings applied:
+    - swappiness: $old_swappiness → 100
+    - page-cluster: $old_page_cluster → 0
+    - vfs_cache_pressure: $old_vfs_cache_pressure → 10
+    - dirty_ratio: $old_dirty_ratio → 80
+    - dirty_background_ratio: $old_dirty_background_ratio → 10
+    - dirty_expire_centisecs: $old_dirty_expire_centisecs → 6000
+    - dirty_writeback_centisecs: $old_dirty_writeback_centisecs → 6000
+    - watermark_boost_factor: $old_watermark_boost → 0
+    - watermark_scale_factor: $old_watermark_scale → 125"
 }
 
 # --- Main Execution ---
 main() {
-    init_log  # Initialize log FIRST
+    sleep 90  # Delay before script runs
+    # init_log  # Initialize log FIRST
     
+    set_zram_size_by_ram # Optional: set ZRAM size based on RAM (if implemented)
+
     # Wait for system (with logging)
     log "Waiting for system boot..."
     while [ "$(getprop sys.boot_completed 2>/dev/null)" != "1" ]; do
@@ -176,7 +224,7 @@ main() {
             swapon /dev/block/zram0 >> "$LOG_FILE" 2>&1
         else
             log "Falling back to smaller size..."
-            ZRAM_SIZE="4G" manage_zram && {
+            ZRAM_SIZE="2G" manage_zram && {
                 mkswap /dev/block/zram0 >> "$LOG_FILE" 2>&1
                 swapon /dev/block/zram0 >> "$LOG_FILE" 2>&1
             } || setup_swapfile
@@ -188,6 +236,14 @@ main() {
     
     # Apply VM tuning
     tune_vm
+
+    # Reapply VM tuning every 5 minutes in the background
+    (
+        while true; do
+            sleep 300
+            tune_vm
+        done
+    ) &
     
     # Results
     log "=== Final Status ==="
