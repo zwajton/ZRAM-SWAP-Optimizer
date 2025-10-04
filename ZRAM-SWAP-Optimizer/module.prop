@@ -1,0 +1,6 @@
+id=zram_boost
+name=ZRAM Boost & VM Tuner
+version=3
+versionCode=21
+author=Zwajton
+description=Enables compressed ZRAM swap and optimizes VM settings for better multitasking and gaming performance (Log file can be found in /sdcard/zram_optimizer.log )
