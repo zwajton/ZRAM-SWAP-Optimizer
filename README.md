@@ -22,6 +22,8 @@ Confirmed working on:
 * KSU
 
 ## How to install
+**Before installing, disable any RAM‑boosters, task killers, or ROM features that alter memory management, swap or VM sysctls. These can conflict with this optimizer and cause instability**
+
 1. Download the latest release
 2. Open root manager (Magisk, Magisk Alpha, Kitsune, APatch or KernelSU)
 3. Go to `Modules`
