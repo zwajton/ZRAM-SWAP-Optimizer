@@ -24,3 +24,8 @@ Confirmed working on:
 4. Tap `Install from storage`
 5. Select the .zip file you just downloaded
 6. Reboot device as required
+
+
+### Credits
+
+Thanks to VR-25 and his modules <https://github.com/VR-25/zram-swap-manager>
