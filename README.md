@@ -1,4 +1,8 @@
 # ZRAM-SWAP-Optimizer
+This module have been built mostly for phones used for gaming, especially for Pokémon Go.
+It works on most devices, and can help with certain systems being aggresive when it comes to killing running apps due to memory.
+
+
 ## ZRAM (SWAP) Optimizer Magisk Module
 A lightweight Android script that enhances performance by:
 * Automatic ZRAM Sizing, Detects device RAM and sets ZRAM size dynamically. 
@@ -24,8 +28,8 @@ Confirmed working on:
 4. Tap `Install from storage`
 5. Select the .zip file you just downloaded
 6. Reboot device as required
-
+**Like always there is a risk of this module bootlooping the phone.**
 
 ### Credits
 
-Thanks to VR-25 and his modules <https://github.com/VR-25/zram-swap-manager>
+Thanks to VR-25 and his module <https://github.com/VR-25/zram-swap-manager> which gave me the idea to build this.
