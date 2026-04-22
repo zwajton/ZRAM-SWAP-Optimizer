@@ -1,6 +1,6 @@
 {
-  "version": "4",
-  "versionCode": 4,
-  "zipUrl": "https://github.com/zwajton/ZRAM-SWAP-Optimizer/releases/download/v4/zram-swap-optimizer.zip",
+  "version": "5",
+  "versionCode": 5,
+  "zipUrl": "https://github.com/zwajton/ZRAM-SWAP-Optimizer/releases/download/v5/zram-swap-optimizer_v5.zip",
   "changelog": "https://raw.githubusercontent.com/zwajton/ZRAM-SWAP-Optimizer/main/changelog.md"
 }
